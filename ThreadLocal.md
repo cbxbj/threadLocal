@@ -15,7 +15,7 @@ ThreadLocal模式与synchronized关键字都用于处理多线程并发访问变
 
 每个`ThreadLocal`都创建一个`Map`，然后用线程作为`Map`的`key`，要存储的局部变量作为`Map`的`value`
 
-![](.\img\001.png)
+![](https://github.com/cbxbj/threadLocal/tree/master/img/001.png)
 
 ### 现在设计
 
