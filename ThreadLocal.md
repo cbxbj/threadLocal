@@ -21,7 +21,7 @@ ThreadLocal模式与synchronized关键字都用于处理多线程并发访问变
 
 在JDK8中 `ThreadLocal`的设计是：每个`Thread`维护一个`ThreadLocalMap`，这个Map的`key`是`ThreadLocal`实例本身，`value`才是真正要存储的值`Object`
 
-![](.\img\002.png)
+![img](https://github.com/cbxbj/threadLocal/blob/master/img/002.png)
 
 ### 好处
 
@@ -31,7 +31,7 @@ ThreadLocal模式与synchronized关键字都用于处理多线程并发访问变
 
 ## 详细结构
 
-![](.\img\003.png)
+![img](https://github.com/cbxbj/threadLocal/blob/master/img/003.png)
 
 `Thread`类有一个类型为`ThreadLocal.ThreadLocalMap`的实例变量`threadLocals`，也就是说每个线程有一个自己的`ThreadLocalMap`。
 
@@ -47,7 +47,7 @@ ThreadLocal模式与synchronized关键字都用于处理多线程并发访问变
 
 强引用、软引用、弱引用、虚引用、终结器引用
 
-![](.\img\004.png)
+![img](https://github.com/cbxbj/threadLocal/blob/master/img/004.png)
 
 #### 强引用
 
@@ -108,7 +108,7 @@ protected void finalize() throws Throwable { }
 
 ##  GC 之后 key 是否为 null？
 
-![](.\img\005.png)
+![img](https://github.com/cbxbj/threadLocal/blob/master/img/005.png)
 
 图示中：Heap中的ThreadLocal被2个对象引用 
 
@@ -181,7 +181,7 @@ threadLocal.set("def");
 
 ## ThreadLocal.set()方法源码详解
 
-![](.\img\006.png)
+![img](https://github.com/cbxbj/threadLocal/blob/master/img/006.png)
 
 ```java
 public void set(T value) {
@@ -323,7 +323,7 @@ private void setThreshold(int len) {
 
 而 `ThreadLocalMap` 中并没有链表结构，所以这里不能使用 `HashMap` 解决冲突的方式了。
 
-![](.\img\007.png)
+![img](https://github.com/cbxbj/threadLocal/blob/master/img/007.png)
 
 如上图所示，如果我们插入一个`value=27`的数据，通过 `hash` 计算后应该落入槽位 4 中，而槽位 4 已经有了 `Entry` 数据。
 
@@ -411,25 +411,25 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
 
 **第一种情况：** 通过`hash`计算后的槽位对应的`Entry`数据为空：
 
-![](.\img\008.png)
+![img](https://github.com/cbxbj/threadLocal/blob/master/img/008.png)
 
 这里直接将数据放到该槽位即可。
 
 **第二种情况：** 槽位数据不为空，`key`值与当前`ThreadLocal`通过`hash`计算获取的`key`值一致：
 
-![](.\img\009.png)
+![img](https://github.com/cbxbj/threadLocal/blob/master/img/009.png)
 
 这里直接更新该槽位的数据。
 
 **第三种情况：** 槽位数据不为空，往后遍历过程中，在找到`Entry`为`null`的槽位之前，没有遇到`key`过期的`Entry`：
 
-![](.\img\010.png)
+![img](https://github.com/cbxbj/threadLocal/blob/master/img/010.png)
 
 遍历散列数组，线性往后查找，如果找到`Entry`为`null`的槽位，则将数据放入该槽位中，或者往后遍历过程中，遇到了**key 值相等**的数据，直接更新即可。
 
 **第四种情况：** 槽位数据不为空，往后遍历过程中，在找到`Entry`为`null`的槽位之前，遇到`key`过期的`Entry`，如下图，往后遍历过程中，遇到了`index=7`的槽位数据`Entry`的`key=null`：
 
-![](.\img\011.png)
+![img](https://github.com/cbxbj/threadLocal/blob/master/img/011.png)
 
 散列数组下标为 7 位置对应的`Entry`数据`key`为`null`，表明此数据`key`值已经被垃圾回收掉了，此时就会执行`replaceStaleEntry()`方法，该方法含义是**替换过期数据的逻辑**，以**index=7**位起点开始遍历，进行探测式数据清理工作。
 
@@ -439,27 +439,27 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
 
 如果找到了过期的数据，继续向前迭代，直到遇到`Entry=null`的槽位才停止迭代，如下图所示，**slotToExpunge 被更新为 0**：
 
-![](.\img\012.png)
+![img](https://github.com/cbxbj/threadLocal/blob/master/img/012.png)
 
 上面向前迭代的操作是为了更新探测清理过期数据的起始下标`slotToExpunge`的值，这个值在后面会讲解，它是用来判断当前过期槽位`staleSlot`之前是否还有过期元素。
 
 接着开始以`staleSlot`位置(`index=7`)向后迭代，**如果找到了相同 key 值的 Entry 数据：**
 
-![](.\img\013.png)
+![img](https://github.com/cbxbj/threadLocal/blob/master/img/013.png)
 
 从当前节点`staleSlot`向后查找`key`值相等的`Entry`元素，找到后更新`Entry`的值并交换`staleSlot`元素的位置(`staleSlot`位置为过期元素)，更新`Entry`数据，然后开始进行过期`Entry`的清理工作，如下图所示：
 
-![](.\img\014.png)
+![img](https://github.com/cbxbj/threadLocal/blob/master/img/014.png)
 
 向后遍历过程中，如果没有找到相同 key 值的 Entry 数据：
 
-![](.\img\015.png)
+![img](https://github.com/cbxbj/threadLocal/blob/master/img/015.png)
 
 从当前节点`staleSlot`向后查找`key`值相等的`Entry`元素，直到`Entry`为`null`则停止寻找。通过上图可知，此时`table`中没有`key`值相同的`Entry`。
 
 创建新的`Entry`，替换`table[stableSlot]`位置：
 
-![](.\img\016.png)
+![img](https://github.com/cbxbj/threadLocal/blob/master/img/016.png)
 
 替换完成后也是进行过期元素清理工作，清理工作主要是有两个方法：`expungeStaleEntry()`和`cleanSomeSlots()`，具体细节后面会讲到
 
@@ -496,7 +496,7 @@ private void set(ThreadLocal<?> key, Object value) {
 
 `for`循环遍历，向后查找，我们先看下`nextIndex()`、`prevIndex()`方法实现：
 
-![](.\img\017.png)
+![img](https://github.com/cbxbj/threadLocal/blob/master/img/017.png)
 
 ```java
 private static int nextIndex(int i, int len) {
@@ -627,11 +627,11 @@ if (slotToExpunge != staleSlot)
 
 我们先讲下探测式清理，也就是`expungeStaleEntry`方法，遍历散列数组，从开始位置向后探测清理过期数据，将过期数据的`Entry`设置为`null`，沿途中碰到未过期的数据则将此数据`rehash`后重新在`table`数组中定位，如果定位的位置已经有了数据，则会将未过期的数据放到最靠近此位置的`Entry=null`的桶中，使`rehash`后的`Entry`数据距离正确的桶的位置更近一些。操作逻辑如下：
 
-![](.\img\018.png)
+![img](https://github.com/cbxbj/threadLocal/blob/master/img/018.png)
 
 如上图，`set(27)` 经过 hash 计算后应该落到`index=4`的桶中，由于`index=4`桶已经有了数据，所以往后迭代最终数据放入到`index=7`的桶中，放入后一段时间后`index=5`中的`Entry`数据`key`变为了`null`
 
-![](.\img\019.png)
+![img](https://github.com/cbxbj/threadLocal/blob/master/img/019.png)
 
 如果再有其他数据`set`到`map`中，就会触发**探测式清理**操作。
 
@@ -641,21 +641,21 @@ if (slotToExpunge != staleSlot)
 
 接着看下`expungeStaleEntry()`具体流程，我们还是以先原理图后源码讲解的方式来一步步梳理：
 
-![](.\img\020.png)
+![img](https://github.com/cbxbj/threadLocal/blob/master/img/020.png)
 
 我们假设`expungeStaleEntry(3)` 来调用此方法，如上图所示，我们可以看到`ThreadLocalMap`中`table`的数据情况，接着执行清理操作：
 
-![](.\img\021.png)
+![img](https://github.com/cbxbj/threadLocal/blob/master/img/021.png)
 
 第一步是清空当前`staleSlot`位置的数据，`index=3`位置的`Entry`变成了`null`。然后接着往后探测：
 
-![](.\img\022.png)
+![img](https://github.com/cbxbj/threadLocal/blob/master/img/022.png)
 
 执行完第二步后，index=4 的元素挪到 index=3 的槽位中。
 
 继续往后迭代检查，碰到正常数据，计算该数据位置是否偏移，如果被偏移，则重新计算`slot`位置，目的是让正常数据尽可能存放在正确位置或离正确位置更近的位置
 
-![](.\img\023.png)
+![img](https://github.com/cbxbj/threadLocal/blob/master/img/023.png)
 
 在往后迭代的过程中碰到空的槽位，终止探测，这样一轮探测式清理工作就完成了，接着我们继续看看具体**实现源代码**：
 
@@ -755,11 +755,11 @@ private void expungeStaleEntries() {
 
 我们还记得上面进行`rehash()`的阈值是`size >= threshold`，所以当面试官套路我们`ThreadLocalMap`扩容机制的时候 我们一定要说清楚这两个步骤：
 
-![](.\img\024.png)
+![img](https://github.com/cbxbj/threadLocal/blob/master/img/024.png)
 
 接着看看具体的`resize()`方法，为了方便演示，我们以`oldTab.len=8`来举例：
 
-![](.\img\025.png)
+![img](https://github.com/cbxbj/threadLocal/blob/master/img/025.png)
 
 扩容后的`tab`的大小为`oldLen * 2`，然后遍历老的散列表，重新计算`hash`位置，然后放到新的`tab`数组中，如果出现`hash`冲突则往后寻找最近的`entry`为`null`的槽位，遍历完成之后，`oldTab`中所有的`entry`数据都已经放入到新的`tab`中了。重新计算`tab`下次扩容的**阈值**，具体代码如下：
 
@@ -799,17 +799,17 @@ private void resize() {
 
 **第一种情况：** 通过查找`key`值计算出散列表中`slot`位置，然后该`slot`位置中的`Entry.key`和查找的`key`一致，则直接返回：
 
-![](.\img\026.png)
+![img](https://github.com/cbxbj/threadLocal/blob/master/img/026.png)
 
 **第二种情况：** `slot`位置中的`Entry.key`和要查找的`key`不一致：
 
-![](.\img\027.png)
+![img](https://github.com/cbxbj/threadLocal/blob/master/img/027.png)
 
 我们以`get(ThreadLocal1)`为例，通过`hash`计算后，正确的`slot`位置应该是 4，而`index=4`的槽位已经有了数据，且`key`值不等于`ThreadLocal1`，所以需要继续往后迭代查找。
 
 迭代到`index=5`的数据时，此时`Entry.key=null`，触发一次探测式数据回收操作，执行`expungeStaleEntry()`方法，执行完后，`index 5,8`的数据都会被回收，而`index 6,7`的数据都会前移，此时继续往后迭代，到`index = 6`的时候即找到了`key`值相等的`Entry`数据，如下图所示：
 
-![](.\img\028.png)
+![img](https://github.com/cbxbj/threadLocal/blob/master/img/028.png)
 
 ### `ThreadLocalMap.get()`源码详解
 
@@ -849,7 +849,7 @@ private Entry getEntryAfterMiss(ThreadLocal<?> key, int i, Entry e) {
 
 而启发式清理被作者定义为：**Heuristically scan some cells looking for stale entries**.
 
-![](.\img\029.png)
+![img](https://github.com/cbxbj/threadLocal/blob/master/img/029.png)
 
 具体代码如下：
 
